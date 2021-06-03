@@ -8,8 +8,10 @@ declare -i puissance=4
 declare -i win=0 # if 1 >> one player won >> stops the game
 declare -i winner=0 # The winner, player 1 or player 2
 declare -i joueur=1 # First player to play = player 1
+declare -i match_nul=$((6*7))
 declare -A whole_tab # The board
 declare -A position_carres # Position des carres
+declare -a position_win # the 4 winner squares position
 
 #=====================================
 # FUNCTION draw_board()
@@ -161,7 +163,7 @@ function draw_board(){
 #=================== BOARD ========================
 
 	tput cup $lines 0
-	tput cnorm
+	#tput sgr0
 }
 
 # ======= Will draw a square yellow or red ===========
@@ -172,12 +174,17 @@ function draw_carre(){
         IFS=',' read -ra my_pos <<< ${position_carres[$1,$2]}
         x=$((${my_pos[1]}))
         y=$((${my_pos[0]}))
+
 	if [ $3 -eq 1 ]
 	then
 		echo -n $red
-	else
+	elif [ $3 -eq 2 ]
+	then
 		echo -n $yellow
+	else
+		tput sgr0
 	fi
+
 	for((qq=0;qq<hauteur_carre;qq++))
 	do
 		tput cup $y $x
@@ -210,6 +217,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$1,$jj])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$1,$jj
 			((count=count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -234,6 +242,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$jj,$2])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$jj,$2
 			((count=count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -251,6 +260,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$jj,$2])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$jj,$2
 			((count=count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -273,6 +283,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$jj,$zz])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$jj,$zz
 			count=$((count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -290,6 +301,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$jj,$zz])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$jj,$zz
 			((count=count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -312,6 +324,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$jj,$zz])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$jj,$zz
 			((count=count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -329,6 +342,7 @@ function check_win(){
 	do
 		if [ $((whole_tab[$jj,$zz])) -eq $(($3)) ] && [ $reset_count -eq 0 ]
 		then
+			position_win[$count]=$jj,$zz
 			((count=count+1))
 			if [ $count -eq $puissance ]
 			then
@@ -359,26 +373,27 @@ function start_game(){
 ######################
 #  START GAME (win==0)
 ######################
-while [ $((win)) == 0 ]
+while [ $((win)) == 0 ] && [ $((match_nul)) -ne 0 ]
 do
 	get_out=0
 	#echo player $joueur to play :
-	read -sN1 touche
+	read -sn1 touche
 	# below, I had to this, because I found a "bug" in bash, or a miss-use from my side
 	if [ ${#touche} -lt 2 ]
 	then
 		((touche=touche-1))
 	else
-		touche=-1
+		((touche=-1))
 	fi
 
 	# Check if we selected an existing column
-	if [ $touche -ge 0 ] && [ $touche -lt $cols ]
+	if [ $((touche)) -ge 0 ] && [ $touche -lt $cols ]
 	then
 		for((ii=0;ii<rows;ii++))
 		do
 			if [ $((whole_tab[$touche,$ii])) -eq 0 ] && [ $((get_out)) -eq 0 ]
 			then
+				((match_nul=match_nul-1))
 				whole_tab+=([$touche,$ii]=$joueur) # OK it found the first available empty case in the column
 				draw_carre $ii $touche $joueur
 				check_win $touche $ii $joueur #### >> CALL function to check if it is a win
@@ -394,6 +409,27 @@ do
 	#else
 	#	echo pas bonne touche
 	fi
+	if [ $win -eq 1 ]
+	then
+		sleep 0.6
+		for((j=0;j<3;j++))
+		do
+			for((i=0;i<puissance;i++))
+			do
+        			IFS=',' read -ra my_pos <<< ${position_win[$i]}
+        			draw_carre $((${my_pos[1]})) $((${my_pos[0]})) 0
+			done
+			sleep 0.4
+			for((i=0;i<puissance;i++))
+			do
+        			IFS=',' read -ra my_pos <<< ${position_win[$i]}
+        			draw_carre $((${my_pos[1]})) $((${my_pos[0]})) $winner
+			done
+			sleep 0.4
+
+		done
+	fi
+
 done
 ######################
 #    END GAME (win==1)
@@ -404,5 +440,12 @@ done
 
 draw_board
 start_game
+tput cnorm
+tput cup $(tput lines) 0
 
-echo BRAVOOOOOO player $winner
+if [ $match_nul -eq 0 ]
+then
+	echo "match nul"
+else
+	echo BRAVOOOOOO player $winner
+fi
