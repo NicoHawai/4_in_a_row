@@ -1,14 +1,14 @@
 #!/bin/bash
 #=====
-declare -i rows=6
-declare -i cols=7
+declare -i rows=6 # 9 max and depending of the screen size
+declare -i cols=7 # 9 max and depending of the screen size
 declare -i puissance=4
 #=====
 
 declare -i win=0 # if 1 >> one player won >> stops the game
 declare -i winner=0 # The winner, player 1 or player 2
 declare -i joueur=1 # First player to play = player 1
-declare -i match_nul=$((6*7))
+declare -i match_nul=$((rows*cols))
 declare -A whole_tab # The board
 declare -A position_carres # Position des carres
 declare -a position_win # the 4 winner squares position
@@ -166,34 +166,64 @@ function draw_board(){
 	#tput sgr0
 }
 
-# ======= Will draw a square yellow or red ===========
+# ======= Will drop a square yellow or red ===========
 #=====================================================
-
-function draw_carre(){
-
-        IFS=',' read -ra my_pos <<< ${position_carres[$1,$2]}
-        x=$((${my_pos[1]}))
-        y=$((${my_pos[0]}))
-
+function drop_carre(){
+	arg_line=$1
+        IFS=',' read -ra my_pos <<< ${position_carres[$((rows-1)),$2]}
+        drop_y=$((${my_pos[0]})) # ligne
+        drop_x=$((${my_pos[1]})) # colonne
+	((drop_y=drop_y-hauteur_carre))
+	((drop_neib=drop_y-hauteur_carre))
 	if [ $3 -eq 1 ]
 	then
-		echo -n $red
-	elif [ $3 -eq 2 ]
-	then
-		echo -n $yellow
+		color=$red
 	else
-		tput sgr0
+		color=$yellow
 	fi
-
-	for((qq=0;qq<hauteur_carre;qq++))
+	nb_carre=$((rows-arg_line))
+	max_bgcolor=$((hauteur_carre-1))
+	max_color=1
+	echo -n $color
+	#draw first square
+	for ((gg=0;gg<hauteur_carre;gg++))
 	do
-		tput cup $y $x
+		tput cup $drop_neib $drop_x
 		printf "%*s" "$largeur_carre"
-		((y=y-1))
+		((drop_neib=drop_neib+1))
 	done
-	tput sgr0
-	tput civis
+	((drop_neib=drop_neib-hauteur_carre-1))
+	sleep 0.2
+	for ((hh=0;hh<nb_carre;hh++))
+	do
+		((drop_neib=drop_neib+gap_hauteur))
+		((drop_y=drop_y+gap_hauteur))
+
+		tput sgr0
+		tput cup $drop_neib $drop_x
+		printf "%*s" "$largeur_carre"
+		((drop_neib=drop_neib+1))
+
+		for((gg=0;gg<hauteur_carre;gg++))
+		do
+			if [ $gg -ne $((hauteur_carre-1)) ]
+			then
+				tput sgr0
+				tput cup $drop_neib $drop_x
+				printf "%*s" "$largeur_carre"
+			fi
+			((drop_neib=drop_neib+1))
+			echo -n $color
+			tput cup $drop_y $drop_x
+			printf "%*s" "$largeur_carre"
+			((drop_y=drop_y+1))
+			sleep 0.02
+		done
+		((drop_neib=drop_neib-1))
+
+	done
 }
+
 #=====================================
 # FUNCTION check_win()
 # Check if the player just won or not
@@ -385,7 +415,6 @@ do
 	else
 		((touche=-1))
 	fi
-
 	# Check if we selected an existing column
 	if [ $((touche)) -ge 0 ] && [ $touche -lt $cols ]
 	then
@@ -395,7 +424,7 @@ do
 			then
 				((match_nul=match_nul-1))
 				whole_tab+=([$touche,$ii]=$joueur) # OK it found the first available empty case in the column
-				draw_carre $ii $touche $joueur
+				drop_carre $ii $touche $joueur
 				check_win $touche $ii $joueur #### >> CALL function to check if it is a win
 				if [ $joueur -eq 1 ] # Change player number
 				then
@@ -411,7 +440,7 @@ do
 	fi
 	if [ $win -eq 1 ]
 	then
-		sleep 0.6
+		sleep 0.5
 		for((j=0;j<3;j++))
 		do
 			for((i=0;i<puissance;i++))
@@ -426,10 +455,8 @@ do
         			draw_carre $((${my_pos[1]})) $((${my_pos[0]})) $winner
 			done
 			sleep 0.4
-
 		done
 	fi
-
 done
 ######################
 #    END GAME (win==1)
