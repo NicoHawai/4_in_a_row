@@ -1,7 +1,7 @@
 #!/bin/bash
 #=====
-declare -i rows=6 # 9 max and depending of the screen size
-declare -i cols=7 # 9 max and depending of the screen size
+declare -i rows=6 # 6 max and depending of the screen size
+declare -i cols=7 # 15 max and depending of the screen size
 declare -i puissance=4
 #=====
 
@@ -164,6 +164,32 @@ function draw_board(){
 
 	tput cup $lines 0
 	#tput sgr0
+}
+
+function draw_carre(){
+
+        IFS=',' read -ra my_pos <<< ${position_carres[$1,$2]}
+        x=$((${my_pos[1]}))
+        y=$((${my_pos[0]}))
+
+	if [ $3 -eq 1 ]
+	then
+		echo -n $red
+	elif [ $3 -eq 2 ]
+	then
+		echo -n $yellow
+	else
+		tput sgr0
+	fi
+
+	for((qq=0;qq<hauteur_carre;qq++))
+	do
+		tput cup $y $x
+		printf "%*s" "$largeur_carre"
+		((y=y-1))
+	done
+	tput sgr0
+	tput civis
 }
 
 # ======= Will drop a square yellow or red ===========
@@ -462,14 +488,11 @@ done
 #    END GAME (win==1)
 ######################
 }
-
 #trap draw_board WINCH
-
 draw_board
 start_game
 tput cnorm
 tput cup $(tput lines) 0
-
 if [ $match_nul -eq 0 ]
 then
 	echo "match nul"
