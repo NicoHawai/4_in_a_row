@@ -1,4 +1,5 @@
 #!/bin/bash
+# GIT SSH
 #=====
 declare -i rows=6 # 6 max and depending of the screen size
 declare -i cols=7 # 15 max and depending of the screen size
