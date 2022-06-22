@@ -1,5 +1,3 @@
-# Bash_4_in_a_row_TUI
-
-Game in bash. Graphical. And with motion! 
+## Game in bash. Graphical. And with MOTION! 
 
 ![](4_rows.PNG)
